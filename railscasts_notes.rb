@@ -1,5 +1,7 @@
 # ACTION ITEMS:
 # [5] Research Rails 4 scopes and how to pass in a hash of options or a single variable, such as an integer
+# [33] Difference between extend and include?
+# [33] Read metaprogramming book
 
 # EPISODE 1
 # If you're making a database call, it's much faster to call it once with
@@ -115,12 +117,13 @@ Task.average(:priority, condition: "complete=0")
 # EPISODE 15
 
 
-# EPISODE 16
+# EPISODE 16 -- Virtual Attributes
 # If you want a field on your form that's not in the database, you can use a virtual attribute.
 # For example, if your database has First Name and Last Name, but you want your form to have
 # one field for Full Name, you set the form in the view to:
 # <%= f.text_field :full_name %>
 # Then in the User model, define a getter and setter method:
+attr_accessible :full_name
 def full_name
 	[first_name, last_name].join(' ')
 end
@@ -277,3 +280,155 @@ end
 # Can also use the Chronic gem, which will allow you to say "Next Monday at 8:00"
 # If you put in an invalid date, get an ugly error. Fix is the rescue above.
 
+
+# EPISODE 33 -- Making a Plugin
+# Refer to previous episode time parsing. In the model, pass in a hook
+stringify_time :due_at
+# Want it dynamically generate getter and setters defined previously
+# $ rails plugin new stringify_time
+# vendor/plugins/stringify_time/init.rb
+require "stringify_time"
+class ActiveRecord::Base
+	extend StringifyTime
+end
+# # vendor/plugins/stringify_time/lib/stringify_time.rb
+module StringifyTime
+	def stringify_time(*names)
+		names.each do |name|
+			define_method "#{name}_string" do
+				read_attribute(name).to_s(:db)
+			end
+
+			define_method "#{name}_string=" do |time_string|
+				begin
+					write_attribute(name, Time.parse(time_str))
+				rescue ArgumentError
+					instance_variable_set("@#{name}_invalid", true)
+				end
+			end
+
+			define_method "#{name}_invalid?" do
+				instance_variable_get("@name_invalid")
+			end
+		end
+	end
+end
+# The model, change:
+def validate
+	errors.add(:due_at, "is invalid") if due_at_invalid?
+end
+
+
+# EPISODE 34 -- Named Routes
+
+
+# EPISODE 35 -- Custom REST Actions
+# Believe this is obsolete with Rails 4
+# REST restricts controllers to 7 actions (typical CRUD ones)
+# In the controller, after the 7 RESTful ones...
+def completed
+	@tasks = Task.find(:all, conditions: 'completed_at IS NOT NULL')
+end
+# Doesn't work by itself because /tasks/completed is trying to hit the show action with id completed
+# Routes before:
+map.resources :tasks
+# Routes after:
+map.resources :collection => { :completed => :get }
+# Go to /tasks;completed
+# This automatically creates a completed_tasks_path
+# Now if you want to mark a task complete:
+def complete
+	@task = Task.find(params[:id])
+	@task.update_attribute :completed_at, Time.now
+	flash[:notice] = "Marked task as complete"
+	redirect_to completed_tasks_path
+end
+# Routes:
+map.resources :collection => { :completed => :get }, member: { :complete => :put }
+# This is a member not a collection since we're performing this on one task
+# <%= link_to "Mark as complete", complete_task_path(task), method: :put %>
+# It may make more sense to have a diff controller and diff model, such as completion model
+
+
+# EPISODE 36 -- Subversion for Rails
+# Obsolete -- Git has replaced Subversion
+
+
+# EPISODE 37 -- Simple Search Form
+# form_for is better for messing with a model's attributes
+# form_tag is better for miscellaneous stuff
+# text_field is editing model's attributes
+# text_field_tag is better for misc stuff
+# View:
+# <% form_tag projects_path, method: 'get' do %>
+# 	<p>
+# 		<%= text_field_tag :search, params[:search] %>
+# 		<%= submit_tag "Search", name: nil %> # The name nil removes the crap from the URL
+# 	</p>
+# <% end %>
+# Controller:
+def index
+	if params[:search]
+		@projects = Project.find(:all, conditions: ['name LIKE ?', "%#{params[:search]""}"])
+	else
+		@projects = Project.find(:all)
+	end
+end
+# Issue: Clutters controller, should move to model
+def index
+	@projects = Project.search(params[:search])
+end
+# Model:
+def self.search(search)
+	if search
+		find(:all, conditions: ['name LIKE ?', "%#{search}"])
+	else
+		find(:all)
+	end
+end
+
+
+# EPISODE 38 -- Multibutton Form
+# At the end of the form, you can add another button and have it act differently depending on
+# which button was clicked.
+# <%= f.submit "Preview", name: "preview_button" %>
+# Then in the controller:
+def create
+	@project = Project.new(params[:project])
+	if params[:preview_button] || !@project.save
+		render 'new'
+	else
+    flash[:notice] = "Successfully created project."
+    redirect_to project_path(@project)
+  end
+end
+# The in the view at the top:
+# <% if params[:preview_button] %>
+# 	<%= textilize @project.description %>
+# <% end %>
+
+
+# EPISODE 39 -- Customize Field Error
+# EPISODE 40 -- Blocks in View
+
+
+# EPISODE 41 -- Conditional Validations
+validates_presence_of :password, :on => :create
+validates_presence_of :country
+validates_presence_of :state, :if => :in_us?
+def in_us?
+	country == 'US'
+end
+# If you need to validate in the controller as well. Need to set up an accessor method so the 
+# controller can set if a validation takes place. Lets say we have an update password page and want
+# to update the password on that page as well as create page, but not every time user is updated.
+attr_accessor :updating_password
+validates_presence_of :password, :if => :should_validate_password?
+def should_validate_password?
+	updating_password || new_record?
+end
+# In the referenced controller page do:
+@user.updating_password = true
+@user.save
+# To skip all validations:
+@user.save(false)
