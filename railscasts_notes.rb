@@ -432,3 +432,33 @@ end
 @user.save
 # To skip all validations:
 @user.save(false)
+
+
+# EPISODE 42 -- with_options
+# MAY BE OBSOLETE
+# Several methods in rails take a hash of options as the last argument. If you are passing the same 
+# options to several methods, you can remove this duplication by using with_options.
+# Instead of:
+validates_presence_of :password, :if => :should_validate_password?
+validates_confirmation_of :password, :if => :should_validate_password?
+validates_format_of :password, :with => /^[^\s]+$/, :if => :should_validate_password?
+attr_accessor :updating_password
+def should_validate_password?
+	updating_password || new_record?
+end
+# Use:
+with_options :if => :should_validate_password? do |user|
+	user.validates_presence_of :password
+	user.validates_confirmation_of :password
+	user.validates_format_of :password, :with => /^[^\s]+$/
+end
+# Can do something similar in routes. Instead of:
+map.login, :controller => 'sections', :action => 'new'
+map.logout, :controller => 'sections', :action => 'destroy'
+# Use:
+map.with_options :controller => 'sessions' do |sessions|
+  sessions.login 'login', :action => 'new'
+  sessions.logout 'logout', :action => 'destroy'
+end
+
+
