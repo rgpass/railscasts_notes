@@ -462,3 +462,37 @@ map.with_options :controller => 'sessions' do |sessions|
 end
 
 
+# EPISODE 43 -- AJAX with RJS
+# Add AJAX functionality easily with RJS
+# Obsolete -- not suggested in production, prototyping maybe
+# Have a partial that holds the part you want to update with AJAX
+# Instead of:
+# <%= form_for @whatever %>
+# Have:
+# <%= form_remote_for @whatever %>
+# In application.html.erb:
+# <%= javascripts :default %>
+# loads in a bunch of default JS files for AJAX 
+# Falls back to old action if JS not enabled
+# In the controller, inside the create action (if doing a POST AJAX request),
+# need to add a respond_to block. This is because a normal redirect_to
+# is a HTTP function and AJAX doesn't know how to respond.
+resond_to do |format|
+	format.html { redirect_to product_path(@review.product_id) } # Tells browser how to respond if HTML request
+	# This next part has format.js, however now it's gone to format.json
+	format.js
+	# Since nothing is provided in this block, it falls back to template: create.rjs
+end
+# In path/create.rjs -- :reviews is from the view with div#reviews -- rjs uses ids to know what to update
+# Also in the view, it rendered partial of 'reviews/review'
+page.insert_html :bottom, :reviews, :partial => 'review', :object => @review # @review was defined in the create controller action
+# Alone, this doesn't update the reviews.count at the top nor does it give a flash notice nor refreshes the form
+# div#reviews_count
+page.replace_html :reviews_count, pluralize(@review.product.reviews.size, 'Review') # would change to @product.reviews however no @product
+# defined in the controller
+page[:review_form].reset
+page.replace_html :notice, flash[:notice] # div#notice is defined in application.html.erb -- this is diff in Bootstrap
+# Clicking refresh the flash stays the same. 2nd time it removes it.
+# Flash messages expect a redirect, so in Flash's 'eyes' there are two requests. With AJAX it's just one.
+# Add to end of create.rjs:
+flash.discard
