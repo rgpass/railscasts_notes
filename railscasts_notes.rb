@@ -496,3 +496,30 @@ page.replace_html :notice, flash[:notice] # div#notice is defined in application
 # Flash messages expect a redirect, so in Flash's 'eyes' there are two requests. With AJAX it's just one.
 # Add to end of create.rjs:
 flash.discard
+
+
+# EPISODE 44 -- Debugging RJS
+# EPISODE 45 -- RJS Tips
+# If you decide to go with RJS, go back to these. Typically use JSON now.
+
+
+# EPISODE 46 -- Catch-all Route
+# May be obsolete.
+# Sometimes you need to add complex/dynamic routes. This is often impossible to do in routes.rb,
+# but do not worry. It can be accomplished with a catch-all route.
+# Lets say you had a Product model and you wanted /television-set to go to /products/1 (assuming Television-set has id: 1)
+# $ rails g controller redirect
+# At the BOTTOM of the routes.rb:
+map.connect '*path', :controller => 'redirect', :action => 'index'
+# Experiment -- redirect_controller.rb
+def index
+	render :text => params.inspect
+end
+# Going to /foo/bar/blah?search=test
+{"search"=>"test", "action" => "index", "controller" => "redirect", "path" => ["foo", "bar", "blah"]}
+# Change redirect_controller.rb to:
+def index
+	@product = Product.find(:first, :conditions => ["name LIKE ?", "#{params[:path].first}%"]) # % makes it only look for begining part of name
+	redirect_to product_path(@product)
+end
+# Now if you go to /tele and press enter, it'll redirect to products/1
