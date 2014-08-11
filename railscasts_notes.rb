@@ -523,3 +523,29 @@ def index
 	redirect_to product_path(@product)
 end
 # Now if you go to /tele and press enter, it'll redirect to products/1
+
+
+# EPISODE 47 -- Two Many-to-Many (Association)
+# Can do has_and_belongs_to_many
+# Other is has_many_through
+# Example Products and Categories
+# product.rb
+has_and_belongs_to_many :categories
+# category.rb
+has_and_belongs_to_many :products
+# create a categories_products table
+# should be in alphabetical order and make sure there's no id
+# This way doesn't let you track order, created_at etc for the association.
+# It's the older, less flexible way
+# The other way is to create a categorization model, then in categorization.rb
+belongs_to :product
+belongs_to :category
+# product.rb
+has_many :categorizations
+has_many :categories, through: :categorization
+# category.rb
+has_many :categorizations
+has_many :products, through: :categorization
+# When to use the second option: if you either need to store info in the join
+# or you need to treat the join like its own model or you want or may need more
+# flexibility
