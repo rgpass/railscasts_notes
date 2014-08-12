@@ -549,3 +549,32 @@ has_many :products, through: :categorization
 # When to use the second option: if you either need to store info in the join
 # or you need to treat the join like its own model or you want or may need more
 # flexibility
+
+
+# EPISODE 48 -- Console Tricks
+$ rails c
+# Can load production environment as rails c production
+rails c --sandbox  # will revert any changes
+p = Project.new
+# You'll see the output is super ugly. It's not designed to be pretty.
+y p # converts it to Yaml, making it much prettier
+app.class # can see app by default is the ActionController
+app.get '/projects' # will return numb of projects
+app.flash # flash messages
+app.assigns[:projects] # value of @projects
+app.cookies # session id
+helper.text_field_tag :foo # Will return the HTML
+helper.pluralize(5, 'item') # "5 items"
+app.methods # Lists all methods
+app.methods.grep(/_path$/).sort # all methods that end in path, like routes
+y _ # formats previous command
+# Creating ~/.irbrc   will create a file that runs before running console
+# in ~/.irbrc:
+require 'pp'
+class Object
+	def foo
+		"bar"
+	end
+end
+# Refresh console, loads ~/.irbrc
+foo # => "bar"
