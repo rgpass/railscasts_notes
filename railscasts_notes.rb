@@ -578,3 +578,35 @@ class Object
 end
 # Refresh console, loads ~/.irbrc
 foo # => "bar"
+
+
+# EPISODE 49 -- Reading the API
+# EPISODE 50 -- Contributing to Rails
+
+
+# EPISODE 51 -- will_paginate
+# Pagination comes in Rails but will_paginate makes it easier (may be obsolete
+# now though).
+# Model.paginate actually creates a pagination collection
+# will_paginate gem is much easier to use.
+
+
+# EPISODE 52 -- Update through Checkboxes
+# Perform actions on all the selected items in a few, for example marking several
+# Tasks on a to-do list as complete.
+# index.html.erb
+form_tag complete_tasks_path, :method => :put do # not form_for which is for editing a model's attributes
+	for task in @incomplete_tasks
+		check_box_tag "task_ids[]", task.id
+		task.name
+	end
+	submit_tag "Mark as Complete"
+end
+# tasks_controller.rb
+def complete
+	# Check dev logs to see what the params being passed are
+	Task.update_all(["completed_at=?", Time.now], :id => params[:task_ids]) # Note: update_all bypasses validations
+	redirect_to tasks_path
+end
+# routes.rb (old way)
+map.resources :tasks, :collection => { :complete => :put }
