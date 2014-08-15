@@ -610,3 +610,40 @@ def complete
 end
 # routes.rb (old way)
 map.resources :tasks, :collection => { :complete => :put }
+
+
+# EPISODE 53 -- Handling Exceptions
+# When an exception is raised in development you get the full error along with the
+# stack trace. In production, only a simple message is displayed. Here's why and
+# how to customize the handling of exceptions.
+# Default is the 500 code page. This is for security reasons. Can see production
+# log file for details.
+# products_controller.rb
+def show
+	@product = Product.find(params[:id])
+end
+# development.rb -- by default
+config.action_controller.consider_all_requests_local = true
+# production.rb -- by default
+config.action_controller.consider_all_requests_local = false
+# Console (to load production, probably would do heroku run rails s)
+$ rails s -e production
+# application.rb -- app controller
+protected
+	# Even if you set production.rb above to true, any request from your own
+	# computer to the server (which is running on your computer) will still be
+	# considered local. This overrides this.
+	def local_request?
+		false # Could add if user is logged in and is an admin, can show details if admin
+	end
+# Now we're able to test what the error message will look like.
+# Note: Old default was to show 500 if no record found.
+	# Overwrite the default behavior of how to show exception
+	def rescue_action_in_public(exception)
+		case exce
+		when ActiveRecord::RecordNotFound
+			render :file => "#{RAILS_ROOT}/public/404.html", :status => 404
+		else
+			super # Everything else acts the way it used to
+		end
+	end
